@@ -1,4 +1,3 @@
-use nanoid::nanoid;
 use std::cell::RefCell;
 use std::cmp::{Eq, Ordering, PartialEq};
 use std::collections::HashMap;
@@ -41,7 +40,7 @@ impl Node {
     }
 }
 
-type RcNode = Rc<Node>;
+pub type RcNode = Rc<Node>;
 
 #[derive(Clone, Debug)]
 pub struct SimpleGraph {
@@ -101,4 +100,14 @@ impl SimpleGraph {
             None => None,
         }
     }
+
+    pub fn has_node(&self, node: RcNode) -> bool {
+        self.data.contains_key(&node)
+    }
+
+    //pub fn has_edge(&self, source: RcNode, target: RcNode) -> bool {
+    //    match self.data.get(&source) {
+    //        Some(v) =>
+    //    }
+    //}
 }
