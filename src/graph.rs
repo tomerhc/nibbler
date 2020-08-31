@@ -161,6 +161,7 @@ impl DiGraph {
             Ok(_) => (),
             Err(ind) => entry_source.insert(ind, Rc::clone(&rctarget)),
         }
+        self.data.entry(rctarget).or_insert(Vec::new());
     }
 
     pub fn from_edge_list(edge_list: Vec<(Node, Node)>) -> Self {
@@ -184,7 +185,7 @@ impl DiGraph {
 
 #[derive(Clone, Debug)]
 pub struct WeightedGraph {
-    pub data: HashMap<RcNode, HashMap<RcNode, u8>>,
+    pub data: HashMap<RcNode, HashMap<RcNode, f32>>,
 }
 
 impl Graph for WeightedGraph {
@@ -215,7 +216,7 @@ impl WeightedGraph {
         self.data.entry(rcnode).or_insert(HashMap::new());
     }
 
-    pub fn add_edge(&mut self, source: Node, target: Node, weight: u8) {
+    pub fn add_edge(&mut self, source: Node, target: Node, weight: f32) {
         let rcsource = Rc::new(source);
         let rctarget = Rc::new(target);
 
@@ -228,12 +229,13 @@ impl WeightedGraph {
                 *w = weight;
             }
             None => {
-                entry_source.insert(rctarget, weight);
+                entry_source.insert(Rc::clone(&rctarget), weight);
             }
         }
+        self.data.entry(rctarget).or_insert(HashMap::new());
     }
 
-    pub fn from_edge_list(edge_list: Vec<(Node, Node, u8)>) -> Self {
+    pub fn from_edge_list(edge_list: Vec<(Node, Node, f32)>) -> Self {
         let mut G = Self::new();
         for (source, target, weight) in edge_list.into_iter() {
             G.add_edge(source, target, weight);
@@ -251,12 +253,12 @@ impl WeightedGraph {
         G
     }
 
-    pub fn get_edge_weight(&self, source: RcNode, target: RcNode) -> Option<&u8> {
+    pub fn get_edge_weight(&self, source: RcNode, target: RcNode) -> Option<&f32> {
         let neigbours = self.data.get(&source)?;
         neigbours.get(&target)
     }
 
-    pub fn neighbor_weights(&self, node: RcNode) -> Option<HashMap<RcNode, u8>> {
+    pub fn neighbor_weights(&self, node: RcNode) -> Option<HashMap<RcNode, f32>> {
         match self.data.get(&node) {
             Some(v) => Some(v.to_owned()),
             None => None,
