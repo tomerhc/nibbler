@@ -1,5 +1,6 @@
 mod algorithms;
 mod graph;
+mod manager;
 use algorithms::{bfs_by, dijkstra};
 use graph::{Node, RcNode, SimpleGraph, WeightedGraph};
 use std::rc::Rc;

@@ -1,10 +1,11 @@
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::cmp::{Eq, Ordering, PartialEq};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::rc::{Rc, Weak};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Node {
     pub id: &'static str,
     pub data: HashMap<&'static str, &'static str>,
