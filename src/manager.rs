@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 pub struct Manager {
-    pub sessions: HashMap<String, Box<dyn Graph>>,
+    pub sessions: HashMap<String, Box<dyn Graph + Send>>,
 }
 
 impl Manager {
@@ -16,15 +16,53 @@ impl Manager {
         }
     }
 
-    pub fn new_session(&mut self, g: G) -> String {
+    pub fn new_session<G: Graph + Send + 'static>(&mut self, g: G) -> String {
         let id = assign_id();
         self.sessions.insert(id.clone(), Box::new(g));
         id
     }
 
-    pub fn create_simple_from_nodes(&mut self, data: &[u8]) -> Result<String, Box<dyn Error>> {
-        let node_list: Vec<Node> = serde_json::from_slice(data)?;
+    pub fn create_simple_from_nodes(&mut self, data: Vec<u8>) -> Result<String, Box<dyn Error>> {
+        let node_list: Vec<Node> = serde_json::from_slice(&data)?;
         let g = graph::SimpleGraph::from_node_list(node_list);
+        Ok(self.new_session(g))
+    }
+
+    pub fn create_simple_from_edges(
+        &mut self,
+        data: &'static [u8],
+    ) -> Result<String, Box<dyn Error>> {
+        let node_list: Vec<(Node, Node)> = serde_json::from_slice(data)?;
+        let g = graph::SimpleGraph::from_edge_list(node_list);
+        Ok(self.new_session(g))
+    }
+
+    pub fn create_di_from_nodes(&mut self, data: &'static [u8]) -> Result<String, Box<dyn Error>> {
+        let node_list: Vec<Node> = serde_json::from_slice(data)?;
+        let g = graph::DiGraph::from_node_list(node_list);
+        Ok(self.new_session(g))
+    }
+
+    pub fn create_di_from_edges(&mut self, data: &'static [u8]) -> Result<String, Box<dyn Error>> {
+        let node_list: Vec<(Node, Node)> = serde_json::from_slice(data)?;
+        let g = graph::DiGraph::from_edge_list(node_list);
+        Ok(self.new_session(g))
+    }
+    pub fn create_weighted_from_nodes(
+        &mut self,
+        data: &'static [u8],
+    ) -> Result<String, Box<dyn Error>> {
+        let node_list: Vec<Node> = serde_json::from_slice(data)?;
+        let g = graph::WeightedGraph::from_node_list(node_list);
+        Ok(self.new_session(g))
+    }
+
+    pub fn create_weighted_from_edges(
+        &mut self,
+        data: &'static [u8],
+    ) -> Result<String, Box<dyn Error>> {
+        let node_list: Vec<(Node, Node, f32)> = serde_json::from_slice(data)?;
+        let g = graph::WeightedGraph::from_edge_list(node_list);
         Ok(self.new_session(g))
     }
 }

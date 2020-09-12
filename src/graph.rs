@@ -3,7 +3,8 @@ use std::cell::RefCell;
 use std::cmp::{Eq, Ordering, PartialEq};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::rc::{Rc, Weak};
+//use std::rc::{Arc, Weak};
+use std::sync::{Arc, Weak};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Node {
@@ -49,58 +50,57 @@ impl Node {
     }
 }
 
-pub type RcNode = Rc<Node>;
+pub type ArcNode = Arc<Node>;
 
 pub trait Graph {
-    fn new() -> Self;
-    fn has_node(&self, node: RcNode) -> bool;
-    fn neighbors(&self, node: RcNode) -> Option<Vec<RcNode>>;
+    fn has_node(&self, node: ArcNode) -> bool;
+    fn neighbors(&self, node: ArcNode) -> Option<Vec<ArcNode>>;
 }
 
 #[derive(Clone, Debug)]
 pub struct SimpleGraph {
-    pub data: HashMap<RcNode, Vec<RcNode>>,
+    pub data: HashMap<ArcNode, Vec<ArcNode>>,
 }
 
 impl Graph for SimpleGraph {
-    fn new() -> Self {
-        SimpleGraph {
-            data: HashMap::new(),
-        }
-    }
-
-    fn neighbors(&self, node: RcNode) -> Option<Vec<RcNode>> {
+    fn neighbors(&self, node: ArcNode) -> Option<Vec<ArcNode>> {
         match self.data.get(&node) {
             Some(v) => Some(v.to_owned()),
             None => None,
         }
     }
 
-    fn has_node(&self, node: RcNode) -> bool {
+    fn has_node(&self, node: ArcNode) -> bool {
         self.data.contains_key(&node)
     }
 }
 
 impl SimpleGraph {
+    fn new() -> Self {
+        SimpleGraph {
+            data: HashMap::new(),
+        }
+    }
+
     pub fn add_node(&mut self, node: Node) {
-        let rcnode: RcNode = Rc::new(node);
+        let rcnode: ArcNode = Arc::new(node);
         self.data.entry(rcnode).or_insert(Vec::new());
     }
 
     pub fn add_edge(&mut self, source: Node, target: Node) {
-        let rcsource = Rc::new(source);
-        let rctarget = Rc::new(target);
+        let rcsource = Arc::new(source);
+        let rctarget = Arc::new(target);
 
-        let entry_source = self.data.entry(Rc::clone(&rcsource)).or_insert(Vec::new());
+        let entry_source = self.data.entry(Arc::clone(&rcsource)).or_insert(Vec::new());
         match entry_source.binary_search(&rctarget) {
             Ok(_) => (),
-            Err(ind) => entry_source.insert(ind, Rc::clone(&rctarget)),
+            Err(ind) => entry_source.insert(ind, Arc::clone(&rctarget)),
         }
 
-        let entry_target = self.data.entry(Rc::clone(&rctarget)).or_insert(Vec::new());
+        let entry_target = self.data.entry(Arc::clone(&rctarget)).or_insert(Vec::new());
         match entry_target.binary_search(&rcsource) {
             Ok(_) => (),
-            Err(ind) => entry_target.insert(ind, Rc::clone(&rcsource)),
+            Err(ind) => entry_target.insert(ind, Arc::clone(&rcsource)),
         }
     }
 
@@ -125,42 +125,41 @@ impl SimpleGraph {
 
 #[derive(Clone, Debug)]
 pub struct DiGraph {
-    pub data: HashMap<RcNode, Vec<RcNode>>,
+    pub data: HashMap<ArcNode, Vec<ArcNode>>,
 }
 
 impl Graph for DiGraph {
-    fn new() -> Self {
-        DiGraph {
-            data: HashMap::new(),
-        }
-    }
-
-    fn neighbors(&self, node: RcNode) -> Option<Vec<RcNode>> {
+    fn neighbors(&self, node: ArcNode) -> Option<Vec<ArcNode>> {
         match self.data.get(&node) {
             Some(v) => Some(v.to_owned()),
             None => None,
         }
     }
 
-    fn has_node(&self, node: RcNode) -> bool {
+    fn has_node(&self, node: ArcNode) -> bool {
         self.data.contains_key(&node)
     }
 }
 
 impl DiGraph {
+    fn new() -> Self {
+        DiGraph {
+            data: HashMap::new(),
+        }
+    }
     pub fn add_node(&mut self, node: Node) {
-        let rcnode: RcNode = Rc::new(node);
+        let rcnode: ArcNode = Arc::new(node);
         self.data.entry(rcnode).or_insert(Vec::new());
     }
 
     pub fn add_edge(&mut self, source: Node, target: Node) {
-        let rcsource = Rc::new(source);
-        let rctarget = Rc::new(target);
+        let rcsource = Arc::new(source);
+        let rctarget = Arc::new(target);
 
-        let entry_source = self.data.entry(Rc::clone(&rcsource)).or_insert(Vec::new());
+        let entry_source = self.data.entry(Arc::clone(&rcsource)).or_insert(Vec::new());
         match entry_source.binary_search(&rctarget) {
             Ok(_) => (),
-            Err(ind) => entry_source.insert(ind, Rc::clone(&rctarget)),
+            Err(ind) => entry_source.insert(ind, Arc::clone(&rctarget)),
         }
         self.data.entry(rctarget).or_insert(Vec::new());
     }
@@ -186,51 +185,50 @@ impl DiGraph {
 
 #[derive(Clone, Debug)]
 pub struct WeightedGraph {
-    pub data: HashMap<RcNode, HashMap<RcNode, f32>>,
+    pub data: HashMap<ArcNode, HashMap<ArcNode, f32>>,
 }
 
 impl Graph for WeightedGraph {
-    fn new() -> Self {
-        WeightedGraph {
-            data: HashMap::new(),
-        }
-    }
-
-    fn neighbors(&self, node: RcNode) -> Option<Vec<RcNode>> {
+    fn neighbors(&self, node: ArcNode) -> Option<Vec<ArcNode>> {
         match self.data.get(&node) {
             Some(v) => {
-                let nodes = v.iter().map(|(node, _)| Rc::clone(node)).collect();
+                let nodes = v.iter().map(|(node, _)| Arc::clone(node)).collect();
                 Some(nodes)
             }
             None => None,
         }
     }
 
-    fn has_node(&self, node: RcNode) -> bool {
+    fn has_node(&self, node: ArcNode) -> bool {
         self.data.contains_key(&node)
     }
 }
 
 impl WeightedGraph {
+    fn new() -> Self {
+        WeightedGraph {
+            data: HashMap::new(),
+        }
+    }
     pub fn add_node(&mut self, node: Node) {
-        let rcnode: RcNode = Rc::new(node);
+        let rcnode: ArcNode = Arc::new(node);
         self.data.entry(rcnode).or_insert(HashMap::new());
     }
 
     pub fn add_edge(&mut self, source: Node, target: Node, weight: f32) {
-        let rcsource = Rc::new(source);
-        let rctarget = Rc::new(target);
+        let rcsource = Arc::new(source);
+        let rctarget = Arc::new(target);
 
         let entry_source = self
             .data
-            .entry(Rc::clone(&rcsource))
+            .entry(Arc::clone(&rcsource))
             .or_insert(HashMap::new());
         match entry_source.get_mut(&rctarget) {
             Some(w) => {
                 *w = weight;
             }
             None => {
-                entry_source.insert(Rc::clone(&rctarget), weight);
+                entry_source.insert(Arc::clone(&rctarget), weight);
             }
         }
         self.data.entry(rctarget).or_insert(HashMap::new());
@@ -254,12 +252,12 @@ impl WeightedGraph {
         G
     }
 
-    pub fn get_edge_weight(&self, source: RcNode, target: RcNode) -> Option<&f32> {
+    pub fn get_edge_weight(&self, source: ArcNode, target: ArcNode) -> Option<&f32> {
         let neigbours = self.data.get(&source)?;
         neigbours.get(&target)
     }
 
-    pub fn neighbor_weights(&self, node: RcNode) -> Option<HashMap<RcNode, f32>> {
+    pub fn neighbor_weights(&self, node: ArcNode) -> Option<HashMap<ArcNode, f32>> {
         match self.data.get(&node) {
             Some(v) => Some(v.to_owned()),
             None => None,

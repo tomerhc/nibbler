@@ -1,11 +1,11 @@
-use crate::graph::{Graph, Node, RcNode, SimpleGraph, WeightedGraph};
+use crate::graph::{ArcNode, Graph, Node, SimpleGraph, WeightedGraph};
 use std::cmp::Ordering::Equal;
 use std::collections::{HashMap, VecDeque};
-use std::rc::Rc;
-
-pub fn bfs_by<F, G>(g: &G, root: RcNode, goal_fn: F) -> Option<RcNode>
+//use std::rc::Arc;
+use std::sync::{Arc, Weak};
+pub fn bfs_by<F, G>(g: &G, root: ArcNode, goal_fn: F) -> Option<ArcNode>
 where
-    F: Fn(&RcNode) -> bool,
+    F: Fn(&ArcNode) -> bool,
     G: Graph,
 {
     let mut queue = VecDeque::from(vec![root]);
@@ -14,55 +14,55 @@ where
         let current_node = queue.pop_back().unwrap();
         if !visited.contains(&current_node) {
             if goal_fn(&current_node) {
-                return Some(Rc::clone(&current_node));
+                return Some(Arc::clone(&current_node));
             } else {
-                let ns = g.neighbors(Rc::clone(&current_node)).unwrap_or(vec![]);
-                let _: Vec<_> = ns.iter().map(|n| queue.push_front(Rc::clone(n))).collect();
-                visited.push(Rc::clone(&current_node));
+                let ns = g.neighbors(Arc::clone(&current_node)).unwrap_or(vec![]);
+                let _: Vec<_> = ns.iter().map(|n| queue.push_front(Arc::clone(n))).collect();
+                visited.push(Arc::clone(&current_node));
             }
         }
     }
     None
 }
 
-pub fn dijkstra(g: &WeightedGraph, root: RcNode, target: RcNode) -> Option<(Vec<RcNode>, f32)> {
-    let mut costs: HashMap<RcNode, f32> = g
-        .neighbor_weights(Rc::clone(&root))?
+pub fn dijkstra(g: &WeightedGraph, root: ArcNode, target: ArcNode) -> Option<(Vec<ArcNode>, f32)> {
+    let mut costs: HashMap<ArcNode, f32> = g
+        .neighbor_weights(Arc::clone(&root))?
         .iter()
-        .map(|(node, w)| (Rc::clone(node), *w))
+        .map(|(node, w)| (Arc::clone(node), *w))
         .collect();
 
-    let mut parents: HashMap<RcNode, Option<RcNode>> = g
-        .neighbors(Rc::clone(&root))?
+    let mut parents: HashMap<ArcNode, Option<ArcNode>> = g
+        .neighbors(Arc::clone(&root))?
         .iter()
-        .map(|node| (Rc::clone(node), Some(Rc::clone(&root))))
+        .map(|node| (Arc::clone(node), Some(Arc::clone(&root))))
         .collect();
 
     for n in g.data.keys() {
-        costs.entry(Rc::clone(n)).or_insert(f32::INFINITY);
-        parents.entry(Rc::clone(n)).or_insert(None);
+        costs.entry(Arc::clone(n)).or_insert(f32::INFINITY);
+        parents.entry(Arc::clone(n)).or_insert(None);
     }
 
-    let mut processed_nodes: Vec<RcNode> = vec![Rc::clone(&root)];
+    let mut processed_nodes: Vec<ArcNode> = vec![Arc::clone(&root)];
 
-    let mut current_node = Some(Rc::clone(&root));
+    let mut current_node = Some(Arc::clone(&root));
     while let Some(node) = current_node {
         if node == target {
             return Some((
-                make_route(parents, Rc::clone(&root), Rc::clone(&node)),
+                make_route(parents, Arc::clone(&root), Arc::clone(&node)),
                 *costs.get(&node).unwrap(),
             ));
         } else {
             let cost = *costs.get(&node).unwrap();
-            let neighbors = g.neighbor_weights(Rc::clone(&node)).unwrap();
+            let neighbors = g.neighbor_weights(Arc::clone(&node)).unwrap();
             for (n, c) in neighbors.iter() {
                 let new_cost = c + cost;
                 if costs.get(n).unwrap() > &new_cost {
                     *costs.get_mut(n).unwrap() = new_cost;
-                    *parents.get_mut(n).unwrap() = Some(Rc::clone(&node))
+                    *parents.get_mut(n).unwrap() = Some(Arc::clone(&node))
                 }
             }
-            processed_nodes.push(Rc::clone(&node));
+            processed_nodes.push(Arc::clone(&node));
             current_node = lowest_cost_node(&costs, &processed_nodes);
         }
     }
@@ -70,25 +70,25 @@ pub fn dijkstra(g: &WeightedGraph, root: RcNode, target: RcNode) -> Option<(Vec<
 }
 
 fn make_route(
-    parents: HashMap<RcNode, Option<RcNode>>,
-    root: RcNode,
-    target: RcNode,
-) -> Vec<RcNode> {
+    parents: HashMap<ArcNode, Option<ArcNode>>,
+    root: ArcNode,
+    target: ArcNode,
+) -> Vec<ArcNode> {
     let mut route = Vec::new();
     let mut current = target;
     while current != root {
-        route.push(Rc::clone(&current));
-        current = Rc::clone(parents.get(&current).unwrap().as_ref().unwrap());
+        route.push(Arc::clone(&current));
+        current = Arc::clone(parents.get(&current).unwrap().as_ref().unwrap());
     }
     route.push(root);
     route.into_iter().rev().collect()
 }
 
 fn lowest_cost_node<'a>(
-    costs: &'a HashMap<RcNode, f32>,
-    processed: &'a Vec<RcNode>,
-) -> Option<RcNode> {
-    let not_proc: HashMap<&RcNode, f32> = costs
+    costs: &'a HashMap<ArcNode, f32>,
+    processed: &'a Vec<ArcNode>,
+) -> Option<ArcNode> {
+    let not_proc: HashMap<&ArcNode, f32> = costs
         .into_iter()
         .filter(|(n, _)| !processed.contains(n))
         .map(|(n, w)| (n, *w))
@@ -99,5 +99,5 @@ fn lowest_cost_node<'a>(
     if min_node.1 == f32::INFINITY {
         return None;
     }
-    Some(Rc::clone(min_node.0))
+    Some(Arc::clone(min_node.0))
 }
