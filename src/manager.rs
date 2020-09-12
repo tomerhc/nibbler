@@ -23,8 +23,8 @@ impl Manager {
     }
 
     pub fn create_simple_from_nodes(&mut self, data: Vec<u8>) -> Result<String, Box<dyn Error>> {
-        let node_list: Vec<Node> = serde_json::from_slice(&data)?;
-        let g = graph::SimpleGraph::from_node_list(node_list);
+        let node_list: HashMap<String, Vec<Node>> = serde_json::from_slice(&data)?;
+        let g = graph::SimpleGraph::from_node_list(node_list.get("node_list").unwrap().to_vec());
         Ok(self.new_session(g))
     }
 

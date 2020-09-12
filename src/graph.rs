@@ -8,8 +8,8 @@ use std::sync::{Arc, Weak};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Node {
-    pub id: &'static str,
-    pub data: HashMap<&'static str, &'static str>,
+    pub id: String,
+    pub data: Option<HashMap<String, String>>,
 }
 
 impl PartialEq for Node {
@@ -17,6 +17,7 @@ impl PartialEq for Node {
         self.id == other.id
     }
 }
+
 impl Eq for Node {}
 
 impl PartialOrd for Node {
@@ -38,15 +39,18 @@ impl Hash for Node {
 }
 
 impl Node {
-    pub fn new(id: &'static str) -> Self {
+    pub fn new(id: String) -> Self {
         Node {
             id: id,
-            data: HashMap::new(),
+            data: Some(HashMap::new()),
         }
     }
 
-    pub fn with_data(id: &'static str, data: HashMap<&'static str, &'static str>) -> Self {
-        Node { id, data }
+    pub fn with_data(id: String, data: HashMap<String, String>) -> Self {
+        Node {
+            id: id,
+            data: Some(data),
+        }
     }
 }
 
